@@ -1,6 +1,7 @@
 // Copyright 2018 Yahoo Holdings. Licensed under the terms of the Apache 2.0 license. See LICENSE in the project root.
 package com.yahoo.vespa.hosted.node.admin.configserver.noderepository;
 
+import com.yahoo.config.provision.HostName;
 import com.yahoo.config.provision.NodeType;
 
 import java.util.Collections;
@@ -13,8 +14,8 @@ import java.util.Set;
  */
 public class AddNode {
 
-    public final String hostname;
-    public final Optional<String> parentHostname;
+    public final HostName hostname;
+    public final Optional<HostName> parentHostname;
     public final String nodeFlavor;
     public final NodeType nodeType;
     public final Set<String> ipAddresses;
@@ -23,18 +24,18 @@ public class AddNode {
     /**
      * Constructor for a host node (has no parent)
      */
-    public AddNode(String hostname, String nodeFlavor, NodeType nodeType, Set<String> ipAddresses, Set<String> additionalIpAddresses) {
+    public AddNode(HostName hostname, String nodeFlavor, NodeType nodeType, Set<String> ipAddresses, Set<String> additionalIpAddresses) {
         this(hostname, Optional.empty(), nodeFlavor, nodeType, ipAddresses, additionalIpAddresses);
     }
 
     /**
      * Constructor for a child node (Must set parentHostname, no additionalIpAddresses)
      */
-    public AddNode(String hostname, String parentHostname, String nodeFlavor, NodeType nodeType, Set<String> ipAddresses) {
+    public AddNode(HostName hostname, HostName parentHostname, String nodeFlavor, NodeType nodeType, Set<String> ipAddresses) {
         this(hostname, Optional.of(parentHostname), nodeFlavor, nodeType, ipAddresses, Collections.emptySet());
     }
 
-    public AddNode(String hostname, Optional<String> parentHostname, String nodeFlavor, NodeType nodeType, Set<String> ipAddresses, Set<String> additionalIpAddresses) {
+    public AddNode(HostName hostname, Optional<HostName> parentHostname, String nodeFlavor, NodeType nodeType, Set<String> ipAddresses, Set<String> additionalIpAddresses) {
         this.hostname = hostname;
         this.parentHostname = parentHostname;
         this.nodeFlavor = nodeFlavor;

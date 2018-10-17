@@ -3,6 +3,7 @@ package com.yahoo.vespa.hosted.node.admin.docker;
 
 import com.google.common.net.InetAddresses;
 import com.yahoo.collections.Pair;
+import com.yahoo.config.provision.HostName;
 import com.yahoo.config.provision.NodeType;
 import com.yahoo.system.ProcessExecuter;
 import com.yahoo.vespa.hosted.dockerapi.Container;
@@ -121,7 +122,7 @@ public class DockerOperationsImpl implements DockerOperations {
     }
 
     void addEtcHosts(ContainerData containerData,
-                     String hostname,
+                     HostName hostname,
                      Optional<InetAddress> ipV4Local,
                      InetAddress ipV6Local) {
         // The default /etc/hosts in a Docker container contains one entry for the host,
@@ -144,8 +145,8 @@ public class DockerOperationsImpl implements DockerOperations {
                 "ff00::0\tip6-mcastprefix\n" +
                 "ff02::1\tip6-allnodes\n" +
                 "ff02::2\tip6-allrouters\n" +
-        ipV6Local.getHostAddress() + '\t' + hostname + '\n');
-        ipV4Local.ifPresent(ipv4 -> etcHosts.append(ipv4.getHostAddress() + '\t' + hostname + '\n'));
+        ipV6Local.getHostAddress() + '\t' + hostname.value() + '\n');
+        ipV4Local.ifPresent(ipv4 -> etcHosts.append(ipv4.getHostAddress() + '\t' + hostname.value() + '\n'));
 
         containerData.addFile(Paths.get("/etc/hosts"), etcHosts.toString());
     }

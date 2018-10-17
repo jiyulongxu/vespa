@@ -2,6 +2,7 @@
 package com.yahoo.vespa.hosted.node.admin.configserver.noderepository;
 
 import com.google.common.base.Strings;
+import com.yahoo.config.provision.HostName;
 import com.yahoo.config.provision.NodeType;
 import com.yahoo.vespa.hosted.dockerapi.DockerImage;
 import com.yahoo.vespa.hosted.node.admin.configserver.ConfigServerApi;
@@ -16,7 +17,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,8 +44,8 @@ public class RealNodeRepository implements NodeRepository {
     }
 
     @Override
-    public List<NodeSpec> getNodes(String baseHostName) {
-        String path = "/nodes/v2/node/?recursive=true&parentHost=" + baseHostName;
+    public List<NodeSpec> getNodes(HostName hostHostname) {
+        String path = "/nodes/v2/node/?recursive=true&parentHost=" + hostHostname.value();
         final GetNodesResponse nodesForHost = configServerApi.get(path, GetNodesResponse.class);
 
         return nodesForHost.nodes.stream()
@@ -54,9 +54,9 @@ public class RealNodeRepository implements NodeRepository {
     }
 
     @Override
-    public Optional<NodeSpec> getOptionalNode(String hostName) {
+    public Optional<NodeSpec> getOptionalNode(HostName hostName) {
         try {
-            NodeRepositoryNode nodeResponse = configServerApi.get("/nodes/v2/node/" + hostName,
+            NodeRepositoryNode nodeResponse = configServerApi.get("/nodes/v2/node/" + hostName.value(),
                     NodeRepositoryNode.class);
 
             return Optional.ofNullable(nodeResponse).map(RealNodeRepository::createNodeSpec);
@@ -73,9 +73,9 @@ public class RealNodeRepository implements NodeRepository {
      * ACLs for child nodes are returned.
      */
     @Override
-    public Map<String, Acl> getAcls(String hostName) {
+    public Map<HostName, Acl> getAcls(HostName hostName) {
         try {
-            final String path = String.format("/nodes/v2/acl/%s?children=true", hostName);
+            final String path = String.format("/nodes/v2/acl/%s?children=true", hostName.value());
             final GetAclResponse response = configServerApi.get(path, GetAclResponse.class);
 
             // Group ports by container hostname that trusts them
@@ -98,7 +98,7 @@ public class RealNodeRepository implements NodeRepository {
                     .flatMap(Set::stream)
                     .distinct()
                     .collect(Collectors.toMap(
-                            Function.identity(),
+                            HostName::from,
                             hostname -> new Acl(trustedPorts.get(hostname), trustedNodes.get(hostname))));
         } catch (HttpException.NotFoundException e) {
             NODE_ADMIN_LOGGER.warning("Failed to fetch ACLs for " + hostName + " No ACL will be applied");
@@ -108,7 +108,7 @@ public class RealNodeRepository implements NodeRepository {
     }
 
     @Override
-    public void updateNodeAttributes(String hostName, NodeAttributes nodeAttributes) {
+    public void updateNodeAttributes(HostName hostName, NodeAttributes nodeAttributes) {
         NodeMessageResponse response = configServerApi.patch(
                 "/nodes/v2/node/" + hostName,
                 nodeRepositoryNodeFromNodeAttributes(nodeAttributes),
@@ -119,7 +119,7 @@ public class RealNodeRepository implements NodeRepository {
     }
 
     @Override
-    public void setNodeState(String hostName, Node.State nodeState) {
+    public void setNodeState(HostName hostName, Node.State nodeState) {
         String state = nodeState.name();
         NodeMessageResponse response = configServerApi.put(
                 "/nodes/v2/state/" + state + "/" + hostName,
@@ -132,7 +132,7 @@ public class RealNodeRepository implements NodeRepository {
     }
 
     @Override
-    public void scheduleReboot(String hostName) {
+    public void scheduleReboot(HostName hostName) {
         NodeMessageResponse response = configServerApi.post(
                 "/nodes/v2/command/reboot?hostname=" + hostName,
                 Optional.empty(), /* body */
@@ -171,7 +171,7 @@ public class RealNodeRepository implements NodeRepository {
         }
 
         return new NodeSpec(
-                hostName,
+                HostName.from(hostName),
                 Optional.ofNullable(node.wantedDockerImage).map(DockerImage::new),
                 Optional.ofNullable(node.currentDockerImage).map(DockerImage::new),
                 nodeState,
@@ -198,14 +198,14 @@ public class RealNodeRepository implements NodeRepository {
                 node.ipAddresses,
                 Optional.ofNullable(node.hardwareDivergence),
                 Optional.ofNullable(node.hardwareFailureDescription),
-                Optional.ofNullable(node.parentHostname));
+                Optional.ofNullable(node.parentHostname).map(HostName::from));
     }
 
     private static NodeRepositoryNode nodeRepositoryNodeFromAddNode(AddNode addNode) {
         NodeRepositoryNode node = new NodeRepositoryNode();
         node.openStackId = "fake-" + addNode.hostname;
-        node.hostname = addNode.hostname;
-        node.parentHostname = addNode.parentHostname.orElse(null);
+        node.hostname = addNode.hostname.value();
+        node.parentHostname = addNode.parentHostname.map(HostName::value).orElse(null);
         node.flavor = addNode.nodeFlavor;
         node.type = addNode.nodeType.name();
         node.ipAddresses = addNode.ipAddresses;

@@ -1,6 +1,7 @@
 // Copyright 2017 Yahoo Holdings. Licensed under the terms of the Apache 2.0 license. See LICENSE in the project root.
 package com.yahoo.vespa.hosted.node.admin.nodeadmin;
 
+import com.yahoo.config.provision.HostName;
 import com.yahoo.vespa.hosted.node.admin.configserver.noderepository.NodeSpec;
 
 import java.time.Duration;
@@ -44,7 +45,7 @@ public interface NodeAdmin {
      * Stop services on these nodes
      * @param nodes List of hostnames to suspend
      */
-    void stopNodeAgentServices(List<String> nodes);
+    void stopNodeAgentServices(List<HostName> nodes);
 
     /**
      * Returns a map containing all relevant NodeAdmin variables and their current values.

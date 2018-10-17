@@ -55,19 +55,19 @@ public class NodeAdminStateUpdaterImplTest {
     @Test
     public void testStateConvergence() {
         mockNodeRepo(Node.State.active, 4);
-        List<String> activeHostnames = nodeRepository.getNodes(hostHostname.value()).stream()
+        List<HostName> activeHostnames = nodeRepository.getNodes(hostHostname).stream()
                 .map(NodeSpec::getHostname)
                 .collect(Collectors.toList());
-        List<String> suspendHostnames = new ArrayList<>(activeHostnames);
-        suspendHostnames.add(hostHostname.value());
+        List<HostName> suspendHostnames = new ArrayList<>(activeHostnames);
+        suspendHostnames.add(hostHostname);
 
         // Initially everything is frozen to force convergence
         assertResumeStateError(NodeAdminStateUpdater.State.RESUMED, TRANSITION_EXCEPTION_MESSAGE);
         when(nodeAdmin.setFrozen(eq(false))).thenReturn(true);
-        doNothing().when(orchestrator).resume(hostHostname.value());
+        doNothing().when(orchestrator).resume(hostHostname);
         tickAfter(0); // The first tick should unfreeze
-        verify(orchestrator, times(1)).resume(hostHostname.value()); // Resume host
-        verify(orchestrator, times(1)).resume(hostHostname.value());
+        verify(orchestrator, times(1)).resume(hostHostname); // Resume host
+        verify(orchestrator, times(1)).resume(hostHostname);
 
         // Everything is running and we want to continue running, therefore we have converged
         refresher.setResumeStateAndCheckIfResumed(NodeAdminStateUpdater.State.RESUMED);
@@ -75,7 +75,7 @@ public class NodeAdminStateUpdaterImplTest {
         tickAfter(35);
         refresher.setResumeStateAndCheckIfResumed(NodeAdminStateUpdater.State.RESUMED);
         verify(refresher, never()).signalWorkToBeDone(); // No attempt in changing state
-        verify(orchestrator, times(1)).resume(hostHostname.value()); // Already resumed
+        verify(orchestrator, times(1)).resume(hostHostname); // Already resumed
 
         // Lets try to suspend node admin only, immediately we get false back, and need to wait until next
         // tick before any change can happen
@@ -97,7 +97,7 @@ public class NodeAdminStateUpdaterImplTest {
         when(nodeAdmin.setFrozen(eq(true))).thenReturn(true);
         when(nodeAdmin.subsystemFreezeDuration()).thenReturn(Duration.ofSeconds(1));
         doThrow(new RuntimeException(exceptionMessage))
-                .when(orchestrator).suspend(eq(hostHostname.value()));
+                .when(orchestrator).suspend(eq(hostHostname));
         tickAfter(35);
         assertResumeStateError(NodeAdminStateUpdater.State.SUSPENDED_NODE_ADMIN, exceptionMessage);
         verify(refresher, times(1)).signalWorkToBeDone();
@@ -108,7 +108,7 @@ public class NodeAdminStateUpdaterImplTest {
         when(nodeAdmin.setFrozen(eq(true))).thenReturn(true);
         when(nodeAdmin.subsystemFreezeDuration()).thenReturn(NodeAdminStateUpdaterImpl.FREEZE_CONVERGENCE_TIMEOUT.plusMinutes(1));
         doThrow(new RuntimeException(exceptionMessage)).doNothing()
-                .when(orchestrator).suspend(eq(hostHostname.value()));
+                .when(orchestrator).suspend(eq(hostHostname));
         tickAfter(35);
         assertResumeStateError(NodeAdminStateUpdater.State.SUSPENDED_NODE_ADMIN, exceptionMessage);
         verify(refresher, times(1)).signalWorkToBeDone();
@@ -119,12 +119,12 @@ public class NodeAdminStateUpdaterImplTest {
         verify(nodeAdmin, times(2)).setFrozen(eq(false));
 
         // At this point orchestrator will say its OK to suspend, but something goes wrong when we try to stop services
-        verify(orchestrator, times(0)).suspend(eq(hostHostname.value()), eq(suspendHostnames));
+        verify(orchestrator, times(0)).suspend(eq(hostHostname), eq(suspendHostnames));
         doThrow(new RuntimeException("Failed to stop services")).doNothing().when(nodeAdmin).stopNodeAgentServices(eq(activeHostnames));
         when(nodeAdmin.subsystemFreezeDuration()).thenReturn(Duration.ofSeconds(1));
         assertResumeStateError(NodeAdminStateUpdater.State.SUSPENDED, TRANSITION_EXCEPTION_MESSAGE);
         tickAfter(0); // Change in wanted state, no need to wait
-        verify(orchestrator, times(1)).suspend(eq(hostHostname.value()), eq(suspendHostnames));
+        verify(orchestrator, times(1)).suspend(eq(hostHostname), eq(suspendHostnames));
         verify(refresher, times(2)).signalWorkToBeDone(); // No change in desired state
         // Make sure we dont roll back if we fail to stop services - we will try to stop again next tick
         verify(nodeAdmin, times(2)).setFrozen(eq(false));
@@ -147,8 +147,8 @@ public class NodeAdminStateUpdaterImplTest {
         tickAfter(35);
         assertResumeStateError(NodeAdminStateUpdater.State.RESUMED, "NodeAdmin is not yet unfrozen");
 
-        doThrow(new OrchestratorException("Cannot allow to suspend " + hostHostname.value())).doNothing()
-                .when(orchestrator).resume(hostHostname.value());
+        doThrow(new OrchestratorException("Cannot allow to suspend " + hostHostname)).doNothing()
+                .when(orchestrator).resume(hostHostname);
         tickAfter(35);
         assertResumeStateError(NodeAdminStateUpdater.State.RESUMED, "Cannot allow to suspend basehost1.test.yahoo.com");
         tickAfter(35);
@@ -162,7 +162,7 @@ public class NodeAdminStateUpdaterImplTest {
 
         // Initially everything is frozen to force convergence
         when(nodeAdmin.setFrozen(eq(false))).thenReturn(true);
-        doNothing().when(orchestrator).resume(hostHostname.value());
+        doNothing().when(orchestrator).resume(hostHostname);
         tickAfter(0); // The first tick should unfreeze
         refresher.setResumeStateAndCheckIfResumed(NodeAdminStateUpdater.State.RESUMED);
         verify(nodeAdmin, times(1)).setFrozen(eq(false));
@@ -170,7 +170,7 @@ public class NodeAdminStateUpdaterImplTest {
         // Let's start suspending, we are able to freeze the nodes, but orchestrator denies suspension
         when(nodeAdmin.subsystemFreezeDuration()).thenReturn(Duration.ofSeconds(1));
         when(nodeAdmin.setFrozen(eq(true))).thenReturn(true);
-        doThrow(new RuntimeException(exceptionMsg)).when(orchestrator).suspend(eq(hostHostname.value()));
+        doThrow(new RuntimeException(exceptionMsg)).when(orchestrator).suspend(eq(hostHostname));
 
         assertResumeStateError(NodeAdminStateUpdater.State.SUSPENDED_NODE_ADMIN, TRANSITION_EXCEPTION_MESSAGE);
         tickAfter(30);
@@ -204,21 +204,21 @@ public class NodeAdminStateUpdaterImplTest {
         // orchestrator to resume/suspend host. Therefore, if host is not active, we only need to freeze.
         tickAfter(0);
         refresher.setResumeStateAndCheckIfResumed(NodeAdminStateUpdater.State.RESUMED);
-        verify(orchestrator, never()).resume(eq(hostHostname.value()));
+        verify(orchestrator, never()).resume(eq(hostHostname));
 
         assertResumeStateError(NodeAdminStateUpdater.State.SUSPENDED_NODE_ADMIN, TRANSITION_EXCEPTION_MESSAGE);
         tickAfter(0);
         refresher.setResumeStateAndCheckIfResumed(NodeAdminStateUpdater.State.SUSPENDED_NODE_ADMIN);
-        verify(orchestrator, never()).suspend(eq(hostHostname.value()));
+        verify(orchestrator, never()).suspend(eq(hostHostname));
 
         // When doing batch suspend, only suspend the containers if the host is not active
-        List<String> activeHostnames = nodeRepository.getNodes(hostHostname.value()).stream()
+        List<HostName> activeHostnames = nodeRepository.getNodes(hostHostname).stream()
                 .map(NodeSpec::getHostname)
                 .collect(Collectors.toList());
         assertResumeStateError(NodeAdminStateUpdater.State.SUSPENDED, TRANSITION_EXCEPTION_MESSAGE);
         tickAfter(0);
         refresher.setResumeStateAndCheckIfResumed(NodeAdminStateUpdater.State.SUSPENDED);
-        verify(orchestrator, times(1)).suspend(eq(hostHostname.value()), eq(activeHostnames));
+        verify(orchestrator, times(1)).suspend(eq(hostHostname), eq(activeHostnames));
     }
 
     private void assertResumeStateError(NodeAdminStateUpdater.State targetState, String reason) {
@@ -233,7 +233,7 @@ public class NodeAdminStateUpdaterImplTest {
     private void mockNodeRepo(Node.State hostState, int numberOfNodes) {
         List<NodeSpec> containersToRun = IntStream.range(0, numberOfNodes)
                 .mapToObj(i -> new NodeSpec.Builder()
-                        .hostname("host" + i + ".test.yahoo.com")
+                        .hostname(HostName.from("host" + i + ".test.yahoo.com"))
                         .state(Node.State.active)
                         .nodeType(NodeType.tenant)
                         .flavor("docker")
@@ -243,10 +243,10 @@ public class NodeAdminStateUpdaterImplTest {
                         .build())
                 .collect(Collectors.toList());
 
-        when(nodeRepository.getNodes(eq(hostHostname.value()))).thenReturn(containersToRun);
+        when(nodeRepository.getNodes(eq(hostHostname))).thenReturn(containersToRun);
 
-        when(nodeRepository.getNode(eq(hostHostname.value()))).thenReturn(new NodeSpec.Builder()
-                .hostname(hostHostname.value())
+        when(nodeRepository.getNode(eq(hostHostname))).thenReturn(new NodeSpec.Builder()
+                .hostname(hostHostname)
                 .state(hostState)
                 .nodeType(NodeType.tenant)
                 .flavor("default")

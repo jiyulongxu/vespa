@@ -4,6 +4,7 @@ package com.yahoo.vespa.hosted.node.admin.configserver.noderepository;
 
 import com.yahoo.application.Networking;
 import com.yahoo.application.container.JDisc;
+import com.yahoo.config.provision.HostName;
 import com.yahoo.config.provision.NodeType;
 import com.yahoo.vespa.hosted.dockerapi.DockerImage;
 import com.yahoo.vespa.hosted.node.admin.configserver.ConfigServerApi;
@@ -82,7 +83,7 @@ public class RealNodeRepositoryTest {
         nodeRepositoryApi = new RealNodeRepository(configServerApi);
         while (Instant.now().minusSeconds(120).isBefore(start)) {
             try {
-                nodeRepositoryApi.getNodes("foobar");
+                nodeRepositoryApi.getNodes(HostName.from("foobar"));
                 return;
             } catch (Exception e) {
                 Thread.sleep(100);
@@ -100,12 +101,12 @@ public class RealNodeRepositoryTest {
 
     @Test
     public void testGetContainersToRunApi() {
-        String dockerHostHostname = "dockerhost1.yahoo.com";
+        HostName dockerHostHostname = HostName.from("dockerhost1.yahoo.com");
 
         final List<NodeSpec> containersToRun = nodeRepositoryApi.getNodes(dockerHostHostname);
         assertThat(containersToRun.size(), is(1));
         final NodeSpec node = containersToRun.get(0);
-        assertThat(node.getHostname(), is("host4.yahoo.com"));
+        assertThat(node.getHostname().value(), is("host4.yahoo.com"));
         assertThat(node.getWantedDockerImage().get(), is(new DockerImage("docker-registry.domain.tld:8080/dist/vespa:6.42.0")));
         assertThat(node.getState(), is(Node.State.active));
         assertThat(node.getWantedRestartGeneration().get(), is(0L));
@@ -117,7 +118,7 @@ public class RealNodeRepositoryTest {
 
     @Test
     public void testGetContainer() {
-        String hostname = "host4.yahoo.com";
+        HostName hostname = HostName.from("host4.yahoo.com");
         Optional<NodeSpec> node = nodeRepositoryApi.getOptionalNode(hostname);
         assertThat(node.isPresent(), is(true));
         assertThat(node.get().getHostname(), is(hostname));
@@ -125,14 +126,14 @@ public class RealNodeRepositoryTest {
 
     @Test
     public void testGetContainerForNonExistingNode() {
-        String hostname = "host-that-does-not-exist";
+        HostName hostname = HostName.from("host-that-does-not-exist");
         Optional<NodeSpec> node = nodeRepositoryApi.getOptionalNode(hostname);
         assertFalse(node.isPresent());
     }
 
     @Test
     public void testUpdateNodeAttributes() {
-        String hostname = "host4.yahoo.com";
+        HostName hostname = HostName.from("host4.yahoo.com");
         nodeRepositoryApi.updateNodeAttributes(
                 hostname,
                 new NodeAttributes()
@@ -142,7 +143,7 @@ public class RealNodeRepositoryTest {
 
     @Test(expected = RuntimeException.class)
     public void testUpdateNodeAttributesWithBadValue() {
-        String hostname = "host4.yahoo.com";
+        HostName hostname = HostName.from("host4.yahoo.com");
         nodeRepositoryApi.updateNodeAttributes(
                 hostname,
                 new NodeAttributes()
@@ -152,18 +153,18 @@ public class RealNodeRepositoryTest {
 
     @Test
     public void testMarkAsReady() {
-        nodeRepositoryApi.setNodeState("host5.yahoo.com", Node.State.dirty);
-        nodeRepositoryApi.setNodeState("host5.yahoo.com", Node.State.ready);
+        nodeRepositoryApi.setNodeState(HostName.from("host5.yahoo.com"), Node.State.dirty);
+        nodeRepositoryApi.setNodeState(HostName.from("host5.yahoo.com"), Node.State.ready);
 
         try {
-            nodeRepositoryApi.setNodeState("host4.yahoo.com", Node.State.ready);
+            nodeRepositoryApi.setNodeState(HostName.from("host4.yahoo.com"), Node.State.ready);
             fail("Should not be allowed to be marked ready as it is not registered as provisioned, dirty, failed or parked");
         } catch (RuntimeException ignored) {
             // expected
         }
 
         try {
-            nodeRepositoryApi.setNodeState("host101.yahoo.com", Node.State.ready);
+            nodeRepositoryApi.setNodeState(HostName.from("host101.yahoo.com"), Node.State.ready);
             fail("Expected failure because host101 does not exist");
         } catch (RuntimeException ignored) {
             // expected
@@ -172,29 +173,29 @@ public class RealNodeRepositoryTest {
 
     @Test
     public void testAddNodes() {
-        AddNode host = new AddNode("host123.domain.tld", "default", NodeType.confighost,
+        AddNode host = new AddNode(HostName.from("host123.domain.tld"), "default", NodeType.confighost,
                 Collections.singleton("::1"), new HashSet<>(Arrays.asList("::2", "::3")));
 
-        AddNode node = new AddNode("host123-1.domain.tld", "host123.domain.tld", "docker", NodeType.config,
-                new HashSet<>(Arrays.asList("::2", "::3")));
+        AddNode node = new AddNode(HostName.from("host123-1.domain.tld"), HostName.from("host123.domain.tld"),
+                "docker", NodeType.config,new HashSet<>(Arrays.asList("::2", "::3")));
 
         List<AddNode> nodesToAdd = Arrays.asList(host, node);
 
-        assertFalse(nodeRepositoryApi.getOptionalNode("host123.domain.tld").isPresent());
+        assertFalse(nodeRepositoryApi.getOptionalNode(HostName.from("host123.domain.tld")).isPresent());
         nodeRepositoryApi.addNodes(nodesToAdd);
 
-        NodeSpec hostSpecInNodeRepo = nodeRepositoryApi.getOptionalNode("host123.domain.tld")
+        NodeSpec hostSpecInNodeRepo = nodeRepositoryApi.getOptionalNode(HostName.from("host123.domain.tld"))
                 .orElseThrow(RuntimeException::new);
 
         assertEquals(host.nodeFlavor, hostSpecInNodeRepo.getFlavor());
         assertEquals(host.nodeType, hostSpecInNodeRepo.getNodeType());
 
-        assertTrue(nodeRepositoryApi.getOptionalNode("host123-1.domain.tld").isPresent());
+        assertTrue(nodeRepositoryApi.getOptionalNode(HostName.from("host123-1.domain.tld")).isPresent());
     }
 
     @Test
     public void testRebootScheduling() {
-        NodeSpec nodeSpec = nodeRepositoryApi.getNode("host5.yahoo.com");
+        NodeSpec nodeSpec = nodeRepositoryApi.getNode(HostName.from("host5.yahoo.com"));
         nodeRepositoryApi.scheduleReboot(nodeSpec.getHostname());
         NodeSpec newNodeSpec = nodeRepositoryApi.getNode(nodeSpec.getHostname());
         assertEquals(nodeSpec.getWantedRebootGeneration() + 1, newNodeSpec.getWantedRebootGeneration());

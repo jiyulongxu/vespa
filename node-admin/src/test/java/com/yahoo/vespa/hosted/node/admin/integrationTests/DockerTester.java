@@ -56,15 +56,15 @@ public class DockerTester implements AutoCloseable {
 
     DockerTester() {
         IPAddressesMock ipAddresses = new IPAddressesMock();
-        ipAddresses.addAddress(HOST_HOSTNAME.value(), "1.1.1.1");
-        ipAddresses.addAddress(HOST_HOSTNAME.value(), "f000::");
+        ipAddresses.addAddress(HOST_HOSTNAME, "1.1.1.1");
+        ipAddresses.addAddress(HOST_HOSTNAME, "f000::");
         for (int i = 1; i < 4; i++) ipAddresses.addAddress("host" + i + ".test.yahoo.com", "f000::" + i);
 
         ProcessExecuter processExecuter = mock(ProcessExecuter.class);
         uncheck(() -> when(processExecuter.exec(any(String[].class))).thenReturn(new Pair<>(0, "")));
 
         NodeSpec hostSpec = new NodeSpec.Builder()
-                .hostname(HOST_HOSTNAME.value())
+                .hostname(HOST_HOSTNAME)
                 .state(Node.State.active)
                 .nodeType(NodeType.host)
                 .flavor("default")
@@ -78,7 +78,7 @@ public class DockerTester implements AutoCloseable {
         StorageMaintainerMock storageMaintainer = new StorageMaintainerMock(dockerOperations, callOrderVerifier);
 
         MetricReceiverWrapper mr = new MetricReceiverWrapper(MetricReceiver.nullImplementation);
-        Function<String, NodeAgent> nodeAgentFactory = (hostName) -> new NodeAgentImpl(
+        Function<HostName, NodeAgent> nodeAgentFactory = (hostName) -> new NodeAgentImpl(
                 new NodeAgentContextImpl.Builder(hostName).fileSystem(fileSystem).build(), nodeRepositoryMock,
                 orchestratorMock, dockerOperations, storageMaintainer, clock, NODE_AGENT_SCAN_INTERVAL, Optional.empty(), Optional.empty());
         nodeAdmin = new NodeAdminImpl(nodeAgentFactory, Optional.empty(), mr, Clock.systemUTC());
@@ -90,7 +90,7 @@ public class DockerTester implements AutoCloseable {
     /** Adds a node to node-repository mock that is running on this host */
     void addChildNodeRepositoryNode(NodeSpec nodeSpec) {
         nodeRepositoryMock.updateNodeRepositoryNode(new NodeSpec.Builder(nodeSpec)
-                .parentHostname(HOST_HOSTNAME.value())
+                .parentHostname(HOST_HOSTNAME)
                 .build());
     }
 

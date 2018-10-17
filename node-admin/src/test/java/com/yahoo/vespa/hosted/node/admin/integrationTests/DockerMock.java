@@ -1,6 +1,7 @@
 // Copyright 2017 Yahoo Holdings. Licensed under the terms of the Apache 2.0 license. See LICENSE in the project root.
 package com.yahoo.vespa.hosted.node.admin.integrationTests;
 
+import com.yahoo.config.provision.HostName;
 import com.yahoo.vespa.hosted.dockerapi.Container;
 import com.yahoo.vespa.hosted.dockerapi.ContainerName;
 import com.yahoo.vespa.hosted.dockerapi.ContainerResources;
@@ -39,7 +40,7 @@ public class DockerMock implements Docker {
             DockerImage dockerImage,
             ContainerResources containerResources,
             ContainerName containerName,
-            String hostName) {
+            HostName hostName) {
         synchronized (monitor) {
             callOrderVerifier.add("createContainerCommand with " + dockerImage +
                     ", HostName: " + hostName + ", " + containerName);

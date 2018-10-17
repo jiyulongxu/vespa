@@ -2,6 +2,7 @@
 package com.yahoo.vespa.hosted.node.admin.task.util.network;
 
 import com.google.common.net.InetAddresses;
+import com.yahoo.config.provision.HostName;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -14,9 +15,13 @@ import java.util.Map;
  */
 public class IPAddressesMock implements IPAddresses {
 
-    private final Map<String, List<InetAddress>> otherAddresses = new HashMap<>();
+    private final Map<HostName, List<InetAddress>> otherAddresses = new HashMap<>();
 
     public IPAddressesMock addAddress(String hostname, String ip) {
+        return addAddress(HostName.from(hostname), ip);
+    }
+
+    public IPAddressesMock addAddress(HostName hostname, String ip) {
         List<InetAddress> addresses = otherAddresses.getOrDefault(hostname, new ArrayList<>());
         addresses.add(InetAddresses.forString(ip));
         otherAddresses.put(hostname, addresses);
@@ -24,7 +29,7 @@ public class IPAddressesMock implements IPAddresses {
     }
 
     @Override
-    public InetAddress[] getAddresses(String hostname) {
+    public InetAddress[] getAddresses(HostName hostname) {
         List<InetAddress> addresses = otherAddresses.get(hostname);
         if (addresses == null) return new InetAddress[0];
         return addresses.toArray(new InetAddress[addresses.size()]);

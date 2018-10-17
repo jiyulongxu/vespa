@@ -2,6 +2,7 @@
 package com.yahoo.vespa.hosted.node.admin.nodeadmin;
 
 import com.yahoo.concurrent.ThreadFactoryFactory;
+import com.yahoo.config.provision.HostName;
 import com.yahoo.vespa.hosted.dockerapi.metrics.CounterWrapper;
 import com.yahoo.vespa.hosted.dockerapi.metrics.Dimensions;
 import com.yahoo.vespa.hosted.dockerapi.metrics.GaugeWrapper;
@@ -39,7 +40,7 @@ public class NodeAdminImpl implements NodeAdmin {
     private final ScheduledExecutorService metricsScheduler =
             Executors.newScheduledThreadPool(1, ThreadFactoryFactory.getDaemonThreadFactory("metricsscheduler"));
 
-    private final Function<String, NodeAgent> nodeAgentFactory;
+    private final Function<HostName, NodeAgent> nodeAgentFactory;
     private final Optional<AclMaintainer> aclMaintainer;
 
     private final Clock clock;
@@ -47,12 +48,12 @@ public class NodeAdminImpl implements NodeAdmin {
     private boolean isFrozen;
     private Instant startOfFreezeConvergence;
 
-    private final Map<String, NodeAgent> nodeAgentsByHostname = new ConcurrentHashMap<>();
+    private final Map<HostName, NodeAgent> nodeAgentsByHostname = new ConcurrentHashMap<>();
 
     private final GaugeWrapper numberOfContainersInLoadImageState;
     private final CounterWrapper numberOfUnhandledExceptionsInNodeAgent;
 
-    public NodeAdminImpl(Function<String, NodeAgent> nodeAgentFactory,
+    public NodeAdminImpl(Function<HostName, NodeAgent> nodeAgentFactory,
                          Optional<AclMaintainer> aclMaintainer,
                          MetricReceiverWrapper metricReceiver,
                          Clock clock) {
@@ -71,7 +72,7 @@ public class NodeAdminImpl implements NodeAdmin {
 
     @Override
     public void refreshContainersToRun(List<NodeSpec> containersToRun) {
-        final Set<String> hostnamesOfContainersToRun = containersToRun.stream()
+        final Set<HostName> hostnamesOfContainersToRun = containersToRun.stream()
                 .map(NodeSpec::getHostname)
                 .collect(Collectors.toSet());
 
@@ -132,7 +133,7 @@ public class NodeAdminImpl implements NodeAdmin {
     }
 
     @Override
-    public void stopNodeAgentServices(List<String> hostnames) {
+    public void stopNodeAgentServices(List<HostName> hostnames) {
         // Each container may spend 1-1:30 minutes stopping
         hostnames.stream()
                 .filter(nodeAgentsByHostname::containsKey)
@@ -201,7 +202,7 @@ public class NodeAdminImpl implements NodeAdmin {
         return result;
     }
 
-    void synchronizeNodesToNodeAgents(Set<String> hostnamesToRun) {
+    void synchronizeNodesToNodeAgents(Set<HostName> hostnamesToRun) {
         // Stop and remove NodeAgents that should no longer be running
         diff(nodeAgentsByHostname.keySet(), hostnamesToRun)
                 .forEach(hostname -> nodeAgentsByHostname.remove(hostname).stop());
@@ -211,7 +212,7 @@ public class NodeAdminImpl implements NodeAdmin {
                 .forEach(this::startNodeAgent);
     }
 
-    private void startNodeAgent(String hostname) {
+    private void startNodeAgent(HostName hostname) {
         if (nodeAgentsByHostname.containsKey(hostname))
             throw new IllegalArgumentException("Attempted to start NodeAgent for hostname " + hostname +
                     ", but one is already running!");

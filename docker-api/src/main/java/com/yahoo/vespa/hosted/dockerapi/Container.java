@@ -1,13 +1,15 @@
 // Copyright 2017 Yahoo Holdings. Licensed under the terms of the Apache 2.0 license. See LICENSE in the project root.
 package com.yahoo.vespa.hosted.dockerapi;
 
+import com.yahoo.config.provision.HostName;
+
 import java.util.Objects;
 
 /**
  * @author stiankri
  */
 public class Container {
-    public final String hostname;
+    public final HostName hostname;
     public final DockerImage image;
     public final ContainerResources resources;
     public final ContainerName name;
@@ -15,7 +17,7 @@ public class Container {
     public final int pid;
 
     public Container(
-            final String hostname,
+            final HostName hostname,
             final DockerImage image,
             final ContainerResources resources,
             final ContainerName containerName,

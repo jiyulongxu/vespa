@@ -6,6 +6,7 @@ import com.github.dockerjava.api.command.CreateContainerCmd;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.Capability;
 import com.github.dockerjava.api.model.Ulimit;
+import com.yahoo.config.provision.HostName;
 import com.yahoo.vespa.hosted.dockerapi.exception.DockerException;
 
 import java.net.Inet6Address;
@@ -31,7 +32,7 @@ class CreateContainerCommandImpl implements Docker.CreateContainerCommand {
     private final DockerImage dockerImage;
     private final ContainerResources containerResources;
     private final ContainerName containerName;
-    private final String hostName;
+    private final HostName hostName;
     private final Map<String, String> labels = new HashMap<>();
     private final List<String> environmentAssignments = new ArrayList<>();
     private final List<String> volumeBindSpecs = new ArrayList<>();
@@ -49,7 +50,7 @@ class CreateContainerCommandImpl implements Docker.CreateContainerCommand {
                                DockerImage dockerImage,
                                ContainerResources containerResources,
                                ContainerName containerName,
-                               String hostName) {
+                               HostName hostName) {
         this.docker = docker;
         this.dockerImage = dockerImage;
         this.containerResources = containerResources;
@@ -152,7 +153,7 @@ class CreateContainerCommandImpl implements Docker.CreateContainerCommand {
                 .withCpuShares(containerResources.cpuShares())
                 .withMemory(containerResources.memoryBytes())
                 .withName(containerName.asString())
-                .withHostName(hostName)
+                .withHostName(hostName.value())
                 .withLabels(labels)
                 .withEnv(environmentAssignments)
                 .withBinds(volumeBinds)
@@ -228,8 +229,8 @@ class CreateContainerCommandImpl implements Docker.CreateContainerCommand {
     /**
      * Generates a pseudo-random MAC address based on the hostname, IPv4- and IPv6-address.
      */
-    static String generateMACAddress(String hostname, Optional<String> ipv4Address, Optional<String> ipv6Address) {
-        final String seed = hostname + ipv4Address.orElse("") + ipv6Address.orElse("");
+    static String generateMACAddress(HostName hostname, Optional<String> ipv4Address, Optional<String> ipv6Address) {
+        final String seed = hostname.value() + ipv4Address.orElse("") + ipv6Address.orElse("");
         Random rand = getPRNG(seed);
         byte[] macAddr = new byte[6];
         rand.nextBytes(macAddr);

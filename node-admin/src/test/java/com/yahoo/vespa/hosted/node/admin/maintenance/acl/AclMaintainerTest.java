@@ -48,9 +48,9 @@ public class AclMaintainerTest {
     @Test
     public void empty_trusted_ports_are_handled() {
         Container container = addContainer("container1", "container1.host.com", Container.State.RUNNING);
-        Map<String, Acl> acls = makeAcl(container.hostname, "4321", "2001::1");
+        Map<HostName, Acl> acls = makeAcl(container.hostname, "4321", "2001::1");
 
-        when(nodeRepository.getAcls(hostHostname.value())).thenReturn(acls);
+        when(nodeRepository.getAcls(hostHostname)).thenReturn(acls);
 
         whenListRules(container.name, "filter", IPVersion.IPv6, "");
         whenListRules(container.name, "filter", IPVersion.IPv4, "");
@@ -66,9 +66,9 @@ public class AclMaintainerTest {
     @Test
     public void configures_container_acl_when_iptables_differs() {
         Container container = addContainer("container1", "container1.host.com", Container.State.RUNNING);
-        Map<String, Acl> acls = makeAcl(container.hostname, "4321", "2001::1");
+        Map<HostName, Acl> acls = makeAcl(container.hostname, "4321", "2001::1");
 
-        when(nodeRepository.getAcls(hostHostname.value())).thenReturn(acls);
+        when(nodeRepository.getAcls(hostHostname)).thenReturn(acls);
 
         whenListRules(container.name, "filter", IPVersion.IPv6, "");
         whenListRules(container.name, "filter", IPVersion.IPv4, "");
@@ -84,9 +84,9 @@ public class AclMaintainerTest {
     @Test
     public void ignore_containers_not_running() {
         Container container = addContainer("container1", "container1.host.com", Container.State.EXITED);
-        Map<String, Acl> acls = makeAcl(container.hostname, "4321", "2001::1");
+        Map<HostName, Acl> acls = makeAcl(container.hostname, "4321", "2001::1");
 
-        when(nodeRepository.getAcls(hostHostname.value())).thenReturn(acls);
+        when(nodeRepository.getAcls(hostHostname)).thenReturn(acls);
 
         aclMaintainer.converge();
 
@@ -96,9 +96,9 @@ public class AclMaintainerTest {
     @Test
     public void only_configure_iptables_for_ipversion_that_differs() {
         Container container = addContainer("container1", "container1.host.com", Container.State.RUNNING);
-        Map<String, Acl> acls = makeAcl(container.hostname, "4321,2345,22", "2001::1", "fd01:1234::4321");
+        Map<HostName, Acl> acls = makeAcl(container.hostname, "4321,2345,22", "2001::1", "fd01:1234::4321");
 
-        when(nodeRepository.getAcls(hostHostname.value())).thenReturn(acls);
+        when(nodeRepository.getAcls(hostHostname)).thenReturn(acls);
 
         String IPV6 = "-P INPUT ACCEPT\n" +
                 "-P FORWARD ACCEPT\n" +
@@ -130,9 +130,9 @@ public class AclMaintainerTest {
     @Test
     public void does_not_configure_acl_if_iptables_dualstack_are_ok() {
         Container container = addContainer("container1", "container1.host.com", Container.State.RUNNING);
-        Map<String, Acl> acls = makeAcl(container.hostname, "22,4443,2222", "2001::1", "192.64.13.2");
+        Map<HostName, Acl> acls = makeAcl(container.hostname, "22,4443,2222", "2001::1", "192.64.13.2");
 
-        when(nodeRepository.getAcls(hostHostname.value())).thenReturn(acls);
+        when(nodeRepository.getAcls(hostHostname)).thenReturn(acls);
 
         String IPV4_FILTER = "-P INPUT ACCEPT\n" +
                 "-P FORWARD ACCEPT\n" +
@@ -174,8 +174,8 @@ public class AclMaintainerTest {
     @Test
     public void rollback_is_attempted_when_applying_acl_fail() {
         Container container = addContainer("container1", "container1.host.com", Container.State.RUNNING);
-        Map<String, Acl> acls = makeAcl(container.hostname, "4321", "2001::1");
-        when(nodeRepository.getAcls(hostHostname.value())).thenReturn(acls);
+        Map<HostName, Acl> acls = makeAcl(container.hostname, "4321", "2001::1");
+        when(nodeRepository.getAcls(hostHostname)).thenReturn(acls);
 
         String IPV6_NAT = "-P PREROUTING ACCEPT\n" +
                 "-P INPUT ACCEPT\n" +
@@ -212,7 +212,7 @@ public class AclMaintainerTest {
 
     private Container addContainer(String name, String hostname, Container.State state) {
         final ContainerName containerName = new ContainerName(name);
-        final Container container = new Container(hostname, new DockerImage("mock"), null,
+        final Container container = new Container(HostName.from(hostname), new DockerImage("mock"), null,
                 containerName, state, 2);
         containers.put(name, container);
         containerList.add(container);
@@ -220,7 +220,7 @@ public class AclMaintainerTest {
         return container;
     }
 
-    private Map<String, Acl> makeAcl(String containerHostname, String portsCommaSeparated, String... addresses) {
+    private Map<HostName, Acl> makeAcl(HostName containerHostname, String portsCommaSeparated, String... addresses) {
         Acl.Builder aclBuilder = new Acl.Builder();
 
         Arrays.stream(portsCommaSeparated.split(","))
@@ -230,7 +230,7 @@ public class AclMaintainerTest {
         Arrays.stream(addresses)
                 .forEach(address -> aclBuilder.withTrustedNode("hostname", address));
 
-        Map<String, Acl> map = new HashMap<>();
+        Map<HostName, Acl> map = new HashMap<>();
         map.put(containerHostname, aclBuilder.build());
         return map;
     }

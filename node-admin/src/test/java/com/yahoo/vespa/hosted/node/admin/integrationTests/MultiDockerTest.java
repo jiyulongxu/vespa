@@ -1,6 +1,7 @@
 // Copyright 2017 Yahoo Holdings. Licensed under the terms of the Apache 2.0 license. See LICENSE in the project root.
 package com.yahoo.vespa.hosted.node.admin.integrationTests;
 
+import com.yahoo.config.provision.HostName;
 import com.yahoo.config.provision.NodeType;
 import com.yahoo.vespa.hosted.dockerapi.ContainerName;
 import com.yahoo.vespa.hosted.dockerapi.DockerImage;
@@ -64,7 +65,7 @@ public class MultiDockerTest {
 
     private NodeSpec addAndWaitForNode(DockerTester tester, String hostName, DockerImage dockerImage) throws InterruptedException {
         NodeSpec nodeSpec = new NodeSpec.Builder()
-                .hostname(hostName)
+                .hostname(HostName.from(hostName))
                 .wantedDockerImage(dockerImage)
                 .wantedVespaVersion("1.2.3")
                 .state(Node.State.active)

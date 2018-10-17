@@ -2,6 +2,7 @@
 package com.yahoo.vespa.hosted.dockerapi;
 
 
+import com.yahoo.config.provision.HostName;
 import org.junit.Test;
 
 import java.net.InetAddress;
@@ -18,7 +19,7 @@ public class CreateContainerCommandImplTest {
     public void testToString() throws UnknownHostException {
         DockerImage dockerImage = new DockerImage("docker.registry.domain.tld/my/image:1.2.3");
         ContainerResources containerResources = new ContainerResources(100, 1024);
-        String hostname = "docker-1.region.domain.tld";
+        HostName hostname = HostName.from("docker-1.region.domain.tld");
         ContainerName containerName = ContainerName.fromHostname(hostname);
 
         Docker.CreateContainerCommand createContainerCommand = new CreateContainerCommandImpl(
@@ -71,7 +72,7 @@ public class CreateContainerCommandImplTest {
 
         Stream.of(addresses).forEach(address -> {
             String generatedMac = CreateContainerCommandImpl.generateMACAddress(
-                    address[0], Optional.ofNullable(address[1]), Optional.ofNullable(address[2]));
+                    HostName.from(address[0]), Optional.ofNullable(address[1]), Optional.ofNullable(address[2]));
             String expectedMac = address[3];
             assertEquals(expectedMac, generatedMac);
         });

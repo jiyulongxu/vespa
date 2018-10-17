@@ -1,6 +1,8 @@
 // Copyright 2017 Yahoo Holdings. Licensed under the terms of the Apache 2.0 license. See LICENSE in the project root.
 package com.yahoo.vespa.hosted.dockerapi;
 
+import com.yahoo.config.provision.HostName;
+
 import java.net.InetAddress;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -57,7 +59,7 @@ public interface Docker {
             DockerImage dockerImage,
             ContainerResources containerResources,
             ContainerName containerName,
-            String hostName);
+            HostName hostName);
 
     Optional<ContainerStats> getContainerStats(ContainerName containerName);
 

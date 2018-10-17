@@ -37,14 +37,14 @@ public class AclMaintainer {
     private final DockerOperations dockerOperations;
     private final NodeRepository nodeRepository;
     private final IPAddresses ipAddresses;
-    private final String hostHostname;
+    private final HostName hostHostname;
 
     public AclMaintainer(DockerOperations dockerOperations, NodeRepository nodeRepository,
                          HostName hostHostname, IPAddresses ipAddresses) {
         this.dockerOperations = dockerOperations;
         this.nodeRepository = nodeRepository;
         this.ipAddresses = ipAddresses;
-        this.hostHostname = hostHostname.value();
+        this.hostHostname = hostHostname;
     }
 
     private void applyRedirect(Container container, InetAddress address) {
@@ -66,7 +66,7 @@ public class AclMaintainer {
 
     private synchronized void configureAcls() {
         log.info("Configuring ACLs"); // Needed to potentially nail down when ACL maintainer stopped working
-        Map<String, Container> runningContainers = dockerOperations
+        Map<HostName, Container> runningContainers = dockerOperations
                 .getAllManagedContainers().stream()
                 .filter(container -> container.state.isRunning())
                 .collect(Collectors.toMap(container -> container.hostname, container -> container));

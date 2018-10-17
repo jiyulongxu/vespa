@@ -2,6 +2,7 @@
 package com.yahoo.vespa.hosted.node.admin.task.util.network;
 
 import com.google.common.net.InetAddresses;
+import com.yahoo.config.provision.HostName;
 
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -30,9 +31,9 @@ import java.util.stream.Stream;
  */
 public interface IPAddresses {
 
-    InetAddress[] getAddresses(String hostname);
+    InetAddress[] getAddresses(HostName hostname);
 
-    default Optional<InetAddress> getAddress(String hostname, IPVersion ipVersion) {
+    default Optional<InetAddress> getAddress(HostName hostname, IPVersion ipVersion) {
         return ipVersion == IPVersion.IPv6
                 ? getIPv6Address(hostname).map(InetAddress.class::cast)
                 : getIPv4Address(hostname).map(InetAddress.class::cast);
@@ -41,7 +42,7 @@ public interface IPAddresses {
     /**
      * Returns a list of string representation of the IP addresses (RFC 5952 compact format)
      */
-    default List<String> getAddresses(String hostname, IPVersion ipVersion) {
+    default List<String> getAddresses(HostName hostname, IPVersion ipVersion) {
         return Stream.of(getAddresses(hostname))
                 .filter(inetAddress -> isOfType(inetAddress, ipVersion))
                 .map(InetAddresses::toAddrString)
@@ -53,7 +54,7 @@ public interface IPAddresses {
      *
      * @throws RuntimeException if multiple addresses are found
      */
-    default Optional<Inet6Address> getIPv6Address(String hostname) {
+    default Optional<Inet6Address> getIPv6Address(HostName hostname) {
         List<Inet6Address> ipv6addresses = Stream.of(getAddresses(hostname))
                 .filter(Inet6Address.class::isInstance)
                 .map(Inet6Address.class::cast)
@@ -75,7 +76,7 @@ public interface IPAddresses {
      *
      * @throws RuntimeException if multiple site-local addresses are found
      */
-    default Optional<Inet4Address> getIPv4Address(String hostname) {
+    default Optional<Inet4Address> getIPv4Address(HostName hostname) {
         List<Inet4Address> ipv4Addresses = Stream.of(getAddresses(hostname))
                 .filter(Inet4Address.class::isInstance)
                 .map(Inet4Address.class::cast)

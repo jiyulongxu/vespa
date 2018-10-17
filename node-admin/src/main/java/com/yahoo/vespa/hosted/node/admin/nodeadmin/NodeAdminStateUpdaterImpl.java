@@ -51,7 +51,7 @@ public class NodeAdminStateUpdaterImpl implements NodeAdminStateUpdater {
     private final Orchestrator orchestrator;
     private final NodeAdmin nodeAdmin;
     private final Clock clock;
-    private final String hostHostname;
+    private final HostName hostHostname;
     private final Duration nodeAdminConvergeStateInterval;
 
     private Instant lastTick;
@@ -66,7 +66,7 @@ public class NodeAdminStateUpdaterImpl implements NodeAdminStateUpdater {
         this.nodeRepository = nodeRepository;
         this.orchestrator = orchestrator;
         this.nodeAdmin = nodeAdmin;
-        this.hostHostname = hostHostname.value();
+        this.hostHostname = hostHostname;
         this.clock = clock;
         this.nodeAdminConvergeStateInterval = nodeAdminConvergeStateInterval;
         this.lastTick = clock.instant();
@@ -201,9 +201,9 @@ public class NodeAdminStateUpdaterImpl implements NodeAdminStateUpdater {
                 // Even though state is frozen we need to interact with node repo, but
                 // the data from node repo should not be used for anything else.
                 // We should also suspend host's hostname to suspend node-admin
-                List<String> nodesInActiveState = getNodesInActiveState();
+                List<HostName> nodesInActiveState = getNodesInActiveState();
 
-                List<String> nodesToSuspend = new ArrayList<>(nodesInActiveState);
+                List<HostName> nodesToSuspend = new ArrayList<>(nodesInActiveState);
                 if (hostIsActiveInNR) nodesToSuspend.add(hostHostname);
                 if (!nodesToSuspend.isEmpty()) {
                     orchestrator.suspend(hostHostname, nodesToSuspend);
@@ -235,7 +235,7 @@ public class NodeAdminStateUpdaterImpl implements NodeAdminStateUpdater {
         }
     }
 
-    private List<String> getNodesInActiveState() {
+    private List<HostName> getNodesInActiveState() {
         return nodeRepository.getNodes(hostHostname)
                              .stream()
                              .filter(node -> node.getState() == Node.State.active)

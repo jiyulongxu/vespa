@@ -1,6 +1,7 @@
 // Copyright 2017 Yahoo Holdings. Licensed under the terms of the Apache 2.0 license. See LICENSE in the project root.
 package com.yahoo.vespa.hosted.node.admin.integrationTests;
 
+import com.yahoo.config.provision.HostName;
 import com.yahoo.config.provision.NodeType;
 import com.yahoo.vespa.hosted.dockerapi.DockerImage;
 import com.yahoo.vespa.hosted.node.admin.configserver.noderepository.NodeSpec;
@@ -59,7 +60,7 @@ public class RebootTest {
 
     private NodeSpec createNodeRepositoryNode() {
         return new NodeSpec.Builder()
-                .hostname("host1.test.yahoo.com")
+                .hostname(HostName.from("host1.test.yahoo.com"))
                 .wantedDockerImage(new DockerImage("dockerImage"))
                 .state(Node.State.active)
                 .nodeType(NodeType.tenant)

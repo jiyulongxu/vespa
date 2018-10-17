@@ -1,6 +1,7 @@
 // Copyright 2017 Yahoo Holdings. Licensed under the terms of the Apache 2.0 license. See LICENSE in the project root.
 package com.yahoo.vespa.hosted.node.admin.nodeadmin;
 
+import com.yahoo.config.provision.HostName;
 import com.yahoo.metrics.simple.MetricReceiver;
 import com.yahoo.test.ManualClock;
 import com.yahoo.vespa.hosted.dockerapi.metrics.MetricReceiverWrapper;
@@ -36,8 +37,8 @@ import static org.mockito.Mockito.when;
  */
 public class NodeAdminImplTest {
     // Trick to allow mocking of typed interface without casts/warnings.
-    private interface NodeAgentFactory extends Function<String, NodeAgent> {}
-    private final Function<String, NodeAgent> nodeAgentFactory = mock(NodeAgentFactory.class);
+    private interface NodeAgentFactory extends Function<HostName, NodeAgent> {}
+    private final Function<HostName, NodeAgent> nodeAgentFactory = mock(NodeAgentFactory.class);
     private final ManualClock clock = new ManualClock();
 
     private final NodeAdminImpl nodeAdmin = new NodeAdminImpl(nodeAgentFactory, Optional.empty(),
@@ -45,8 +46,8 @@ public class NodeAdminImplTest {
 
     @Test
     public void nodeAgentsAreProperlyLifeCycleManaged() {
-        final String hostName1 = "host1.test.yahoo.com";
-        final String hostName2 = "host2.test.yahoo.com";
+        final HostName hostName1 = HostName.from("host1.test.yahoo.com");
+        final HostName hostName2 = HostName.from("host2.test.yahoo.com");
         final NodeAgent nodeAgent1 = mock(NodeAgentImpl.class);
         final NodeAgent nodeAgent2 = mock(NodeAgentImpl.class);
         when(nodeAgentFactory.apply(eq(hostName1))).thenReturn(nodeAgent1);
@@ -63,12 +64,12 @@ public class NodeAdminImplTest {
         inOrder.verify(nodeAgent1, never()).stop();
 
         nodeAdmin.synchronizeNodesToNodeAgents(Collections.singleton(hostName1));
-        inOrder.verify(nodeAgentFactory, never()).apply(any(String.class));
+        inOrder.verify(nodeAgentFactory, never()).apply(any(HostName.class));
         inOrder.verify(nodeAgent1, never()).start();
         inOrder.verify(nodeAgent1, never()).stop();
 
         nodeAdmin.synchronizeNodesToNodeAgents(Collections.emptySet());
-        inOrder.verify(nodeAgentFactory, never()).apply(any(String.class));
+        inOrder.verify(nodeAgentFactory, never()).apply(any(HostName.class));
         verify(nodeAgent1).stop();
 
         nodeAdmin.synchronizeNodesToNodeAgents(Collections.singleton(hostName2));
@@ -78,7 +79,7 @@ public class NodeAdminImplTest {
         verify(nodeAgent1).stop();
 
         nodeAdmin.synchronizeNodesToNodeAgents(Collections.emptySet());
-        inOrder.verify(nodeAgentFactory, never()).apply(any(String.class));
+        inOrder.verify(nodeAgentFactory, never()).apply(any(HostName.class));
         inOrder.verify(nodeAgent2, never()).start();
         inOrder.verify(nodeAgent2).stop();
 
@@ -89,9 +90,9 @@ public class NodeAdminImplTest {
     @Test
     public void testSetFrozen() {
         List<NodeAgent> nodeAgents = new ArrayList<>();
-        Set<String> existingContainerHostnames = new HashSet<>();
+        Set<HostName> existingContainerHostnames = new HashSet<>();
         for (int i = 0; i < 3; i++) {
-            final String hostName = "host" + i + ".test.yahoo.com";
+            final HostName hostName = HostName.from("host" + i + ".test.yahoo.com");
             NodeAgent nodeAgent = mock(NodeAgent.class);
             nodeAgents.add(nodeAgent);
             when(nodeAgentFactory.apply(eq(hostName))).thenReturn(nodeAgent);

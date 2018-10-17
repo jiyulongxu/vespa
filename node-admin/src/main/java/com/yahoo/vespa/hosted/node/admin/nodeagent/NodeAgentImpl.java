@@ -255,7 +255,7 @@ public class NodeAgentImpl implements NodeAgent {
         if (!currentAttributes.equals(wantedAttributes)) {
             context.log(logger, "Publishing new set of attributes to node repo: %s -> %s",
                     currentAttributes, wantedAttributes);
-            nodeRepository.updateNodeAttributes(context.hostname().value(), wantedAttributes);
+            nodeRepository.updateNodeAttributes(context.hostname(), wantedAttributes);
         }
     }
 
@@ -457,7 +457,7 @@ public class NodeAgentImpl implements NodeAgent {
 
     // Public for testing
     void converge() {
-        final Optional<NodeSpec> optionalNode = nodeRepository.getOptionalNode(context.hostname().value());
+        final Optional<NodeSpec> optionalNode = nodeRepository.getOptionalNode(context.hostname());
 
         // We just removed the node from node repo, so this is expected until NodeAdmin stop this NodeAgent
         if (!optionalNode.isPresent() && expectNodeNotInNodeRepo) return;
@@ -528,14 +528,14 @@ public class NodeAgentImpl implements NodeAgent {
                 //    to allow upgrade (suspend).
                 updateNodeRepoWithCurrentAttributes(node);
                 context.log(logger, "Call resume against Orchestrator");
-                orchestrator.resume(context.hostname().value());
+                orchestrator.resume(context.hostname());
                 break;
             case inactive:
                 removeContainerIfNeededUpdateContainerState(node, container);
                 updateNodeRepoWithCurrentAttributes(node);
                 break;
             case provisioned:
-                nodeRepository.setNodeState(context.hostname().value(), Node.State.dirty);
+                nodeRepository.setNodeState(context.hostname(), Node.State.dirty);
                 break;
             case dirty:
                 removeContainerIfNeededUpdateContainerState(node, container);
@@ -543,7 +543,7 @@ public class NodeAgentImpl implements NodeAgent {
                 athenzCredentialsMaintainer.ifPresent(maintainer -> maintainer.clearCredentials(context));
                 storageMaintainer.archiveNodeStorage(context);
                 updateNodeRepoWithCurrentAttributes(node);
-                nodeRepository.setNodeState(context.hostname().value(), Node.State.ready);
+                nodeRepository.setNodeState(context.hostname(), Node.State.ready);
                 expectNodeNotInNodeRepo = true;
                 break;
             default:
@@ -603,7 +603,7 @@ public class NodeAgentImpl implements NodeAgent {
                 .add("host", context.hostname().value())
                 .add("role", "tenants")
                 .add("state", node.getState().toString());
-        node.getParentHostname().ifPresent(parent -> dimensionsBuilder.add("parentHostname", parent));
+        node.getParentHostname().ifPresent(parent -> dimensionsBuilder.add("parentHostname", parent.value()));
         node.getAllowedToBeDown().ifPresent(allowed ->
                 dimensionsBuilder.add("orchestratorState", allowed ? "ALLOWED_TO_BE_DOWN" : "NO_REMARKS"));
         Dimensions dimensions = dimensionsBuilder.build();
@@ -743,7 +743,7 @@ public class NodeAgentImpl implements NodeAgent {
     // needs to contain routines for drain and suspend. For many images, these can just be dummy routines.
     private void orchestratorSuspendNode() {
         context.log(logger, "Ask Orchestrator for permission to suspend node");
-        orchestrator.suspend(context.hostname().value());
+        orchestrator.suspend(context.hostname());
     }
 
     protected ContainerData createContainerData(NodeAgentContext context, NodeSpec node) {

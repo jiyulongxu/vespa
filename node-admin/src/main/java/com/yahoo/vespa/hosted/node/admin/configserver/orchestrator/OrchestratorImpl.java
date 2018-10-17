@@ -1,6 +1,7 @@
 // Copyright 2017 Yahoo Holdings. Licensed under the terms of the Apache 2.0 license. See LICENSE in the project root.
 package com.yahoo.vespa.hosted.node.admin.configserver.orchestrator;
 
+import com.yahoo.config.provision.HostName;
 import com.yahoo.vespa.hosted.node.admin.configserver.ConfigServerApi;
 import com.yahoo.vespa.hosted.node.admin.configserver.HttpException;
 import com.yahoo.vespa.orchestrator.restapi.HostApi;
@@ -10,6 +11,7 @@ import com.yahoo.vespa.orchestrator.restapi.wire.UpdateHostResponse;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * @author stiankri
@@ -31,7 +33,7 @@ public class OrchestratorImpl implements Orchestrator {
     }
 
     @Override
-    public void suspend(final String hostName) {
+    public void suspend(HostName hostName) {
         UpdateHostResponse response;
         try {
             response = configServerApi.put(getSuspendPath(hostName),
@@ -52,12 +54,12 @@ public class OrchestratorImpl implements Orchestrator {
     }
 
     @Override
-    public void suspend(String parentHostName, List<String> hostNames) {
+    public void suspend(HostName parentHostName, List<HostName> hostNames) {
         final BatchOperationResult batchOperationResult;
         try {
-            String params = String.join("&hostname=", hostNames);
+            String params = hostNames.stream().map(HostName::value).collect(Collectors.joining("&hostname="));
             String url = String.format("%s/%s?hostname=%s", ORCHESTRATOR_PATH_PREFIX_HOST_SUSPENSION_API,
-                                       parentHostName, params);
+                                       parentHostName.value(), params);
             batchOperationResult = configServerApi.put(url, Optional.empty(), BatchOperationResult.class);
         } catch (HttpException e) {
             throw new OrchestratorException("Failed to batch suspend for " +
@@ -72,7 +74,7 @@ public class OrchestratorImpl implements Orchestrator {
     }
 
     @Override
-    public void resume(final String hostName) {
+    public void resume(HostName hostName) {
         UpdateHostResponse response;
         try {
             String path = getSuspendPath(hostName);
@@ -91,8 +93,8 @@ public class OrchestratorImpl implements Orchestrator {
         });
     }
 
-    private String getSuspendPath(String hostName) {
-        return ORCHESTRATOR_PATH_PREFIX_HOST_API + "/" + hostName + "/suspended";
+    private String getSuspendPath(HostName hostName) {
+        return ORCHESTRATOR_PATH_PREFIX_HOST_API + "/" + hostName.value() + "/suspended";
     }
 
 }

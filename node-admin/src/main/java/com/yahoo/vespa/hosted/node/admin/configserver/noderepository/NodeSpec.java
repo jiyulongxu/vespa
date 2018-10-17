@@ -1,6 +1,7 @@
 // Copyright 2017 Yahoo Holdings. Licensed under the terms of the Apache 2.0 license. See LICENSE in the project root.
 package com.yahoo.vespa.hosted.node.admin.configserver.noderepository;
 
+import com.yahoo.config.provision.HostName;
 import com.yahoo.config.provision.NodeType;
 import com.yahoo.vespa.hosted.dockerapi.DockerImage;
 import com.yahoo.vespa.hosted.provision.Node;
@@ -14,7 +15,7 @@ import java.util.Set;
  * @author stiankri
  */
 public class NodeSpec {
-    private final String hostname;
+    private final HostName hostname;
     private final Node.State state;
     private final NodeType nodeType;
     private final String flavor;
@@ -50,10 +51,10 @@ public class NodeSpec {
 
     private final Optional<String> hardwareDivergence;
     private final Optional<String> hardwareFailureDescription;
-    private final Optional<String> parentHostname;
+    private final Optional<HostName> parentHostname;
 
     public NodeSpec(
-            final String hostname,
+            final HostName hostname,
             final Optional<DockerImage> wantedDockerImage,
             final Optional<DockerImage> currentDockerImage,
             final Node.State state,
@@ -80,7 +81,7 @@ public class NodeSpec {
             final Set<String> ipAddresses,
             final Optional<String> hardwareDivergence,
             final Optional<String> hardwareFailureDescription,
-            final Optional<String> parentHostname) {
+            final Optional<HostName> parentHostname) {
         this.hostname = Objects.requireNonNull(hostname);
         this.wantedDockerImage = Objects.requireNonNull(wantedDockerImage);
         this.currentDockerImage = Objects.requireNonNull(currentDockerImage);
@@ -111,7 +112,7 @@ public class NodeSpec {
         this.parentHostname = Objects.requireNonNull(parentHostname);
     }
 
-    public String getHostname() {
+    public HostName getHostname() {
         return hostname;
     }
 
@@ -219,7 +220,7 @@ public class NodeSpec {
         return hardwareFailureDescription;
     }
 
-    public Optional<String> getParentHostname() {
+    public Optional<HostName> getParentHostname() {
         return parentHostname;
     }
 
@@ -453,7 +454,7 @@ public class NodeSpec {
     }
 
     public static class Builder {
-        private String hostname;
+        private HostName hostname;
         private Optional<DockerImage> wantedDockerImage = Optional.empty();
         private Optional<DockerImage> currentDockerImage = Optional.empty();
         private Node.State state;
@@ -480,7 +481,7 @@ public class NodeSpec {
         private Set<String> ipAddresses = Collections.emptySet();
         private Optional<String> hardwareDivergence = Optional.empty();
         private Optional<String> hardwareFailureDescription = Optional.empty();
-        private Optional<String> parentHostname = Optional.empty();
+        private Optional<HostName> parentHostname = Optional.empty();
 
         public Builder() {}
 
@@ -516,7 +517,7 @@ public class NodeSpec {
             node.parentHostname.ifPresent(this::parentHostname);
         }
 
-        public Builder hostname(String hostname) {
+        public Builder hostname(HostName hostname) {
             this.hostname = hostname;
             return this;
         }
@@ -651,7 +652,7 @@ public class NodeSpec {
             return this;
         }
 
-        public Builder parentHostname(String parentHostname) {
+        public Builder parentHostname(HostName parentHostname) {
             this.parentHostname = Optional.of(parentHostname);
             return this;
         }
@@ -667,7 +668,7 @@ public class NodeSpec {
             return this;
         }
 
-        public String getHostname() {
+        public HostName getHostname() {
             return hostname;
         }
 
@@ -775,7 +776,7 @@ public class NodeSpec {
             return hardwareFailureDescription;
         }
 
-        public Optional<String> getParentHostname() {
+        public Optional<HostName> getParentHostname() {
             return parentHostname;
         }
 

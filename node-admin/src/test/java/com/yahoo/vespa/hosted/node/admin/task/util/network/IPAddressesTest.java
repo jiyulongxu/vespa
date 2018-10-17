@@ -2,6 +2,7 @@
 package com.yahoo.vespa.hosted.node.admin.task.util.network;
 
 import com.google.common.net.InetAddresses;
+import com.yahoo.config.provision.HostName;
 import org.junit.Test;
 
 import java.net.Inet6Address;
@@ -23,7 +24,7 @@ public class IPAddressesTest {
                 .addAddress("localhost", "fe80::1")
                 .addAddress("localhost", "2001::1");
 
-        assertEquals(InetAddresses.forString("10.0.2.2"), mock.getIPv4Address("localhost").get());
+        assertEquals(InetAddresses.forString("10.0.2.2"), mock.getIPv4Address(HostName.from("localhost")).get());
     }
 
     @Test
@@ -33,14 +34,14 @@ public class IPAddressesTest {
                 .addAddress("localhost", "fe80::1")
                 .addAddress("localhost", "2001::1");
 
-        assertEquals(InetAddresses.forString("2001::1"), mock.getIPv6Address("localhost").get());
+        assertEquals(InetAddresses.forString("2001::1"), mock.getIPv6Address(HostName.from("localhost")).get());
     }
 
     @Test(expected = RuntimeException.class)
     public void throws_when_multiple_ipv6_addresses() {
         mock.addAddress("localhost", "2001::1")
                 .addAddress("localhost", "2001::2");
-        mock.getIPv6Address("localhost");
+        mock.getIPv6Address(HostName.from("localhost"));
     }
 
     @Test(expected = RuntimeException.class)
@@ -48,7 +49,7 @@ public class IPAddressesTest {
         mock.addAddress("localhost", "38.3.4.2")
                 .addAddress("localhost", "10.0.2.2")
                 .addAddress("localhost", "10.0.2.3");
-        mock.getIPv4Address("localhost");
+        mock.getIPv4Address(HostName.from("localhost"));
     }
 
     @Test

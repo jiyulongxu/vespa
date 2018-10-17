@@ -1,6 +1,7 @@
 // Copyright 2017 Yahoo Holdings. Licensed under the terms of the Apache 2.0 license. See LICENSE in the project root.
 package com.yahoo.vespa.hosted.node.admin.configserver.noderepository;
 
+import com.yahoo.config.provision.HostName;
 import com.yahoo.vespa.hosted.provision.Node;
 
 import java.util.List;
@@ -14,19 +15,19 @@ public interface NodeRepository {
 
     void addNodes(List<AddNode> nodes);
 
-    List<NodeSpec> getNodes(String baseHostName);
+    List<NodeSpec> getNodes(HostName baseHostName);
 
-    default NodeSpec getNode(String hostName) {
+    default NodeSpec getNode(HostName hostName) {
         return getOptionalNode(hostName).orElseThrow(() -> new NoSuchNodeException(hostName + " not found in node-repo"));
     }
 
-    Optional<NodeSpec> getOptionalNode(String hostName);
+    Optional<NodeSpec> getOptionalNode(HostName hostName);
 
-    Map<String, Acl> getAcls(String hostname);
+    Map<HostName, Acl> getAcls(HostName hostname);
 
-    void updateNodeAttributes(String hostName, NodeAttributes nodeAttributes);
+    void updateNodeAttributes(HostName hostName, NodeAttributes nodeAttributes);
 
-    void setNodeState(String hostName, Node.State nodeState);
+    void setNodeState(HostName hostName, Node.State nodeState);
 
-    void scheduleReboot(String hostname);
+    void scheduleReboot(HostName hostname);
 }

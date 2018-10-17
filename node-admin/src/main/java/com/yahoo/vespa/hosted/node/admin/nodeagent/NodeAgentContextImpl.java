@@ -34,10 +34,10 @@ public class NodeAgentContextImpl implements NodeAgentContext {
     private final Path pathToNodeRootOnHost;
     private final Path pathToVespaHome;
 
-    public NodeAgentContextImpl(String hostname, NodeType nodeType, AthenzService identity,
+    public NodeAgentContextImpl(HostName hostname, NodeType nodeType, AthenzService identity,
                                 DockerNetworking dockerNetworking, ZoneId zoneId,
                                 Path pathToContainerStorage, Path pathToVespaHome) {
-        this.hostName = HostName.from(Objects.requireNonNull(hostname));
+        this.hostName = Objects.requireNonNull(hostname);
         this.containerName = ContainerName.fromHostname(hostname);
         this.nodeType = Objects.requireNonNull(nodeType);
         this.identity = Objects.requireNonNull(identity);
@@ -123,15 +123,19 @@ public class NodeAgentContextImpl implements NodeAgentContext {
 
     /** For testing only! */
     public static class Builder {
-        private final String hostname;
+        private final HostName hostname;
         private NodeType nodeType;
         private AthenzService identity;
         private DockerNetworking dockerNetworking;
         private ZoneId zoneId;
         private Path pathToContainerStorage;
         private Path pathToVespaHome;
-        
+
         public Builder(String hostname) {
+            this(HostName.from(hostname));
+        }
+        
+        public Builder(HostName hostname) {
             this.hostname = hostname;
         }
 

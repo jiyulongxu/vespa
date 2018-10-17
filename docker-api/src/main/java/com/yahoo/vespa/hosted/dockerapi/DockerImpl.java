@@ -19,6 +19,7 @@ import com.github.dockerjava.core.command.ExecStartResultCallback;
 import com.github.dockerjava.core.command.PullImageResultCallback;
 import com.github.dockerjava.jaxrs.JerseyDockerCmdExecFactory;
 import com.google.inject.Inject;
+import com.yahoo.config.provision.HostName;
 import com.yahoo.log.LogLevel;
 import com.yahoo.vespa.hosted.dockerapi.exception.ContainerNotFoundException;
 import com.yahoo.vespa.hosted.dockerapi.exception.DockerException;
@@ -115,7 +116,7 @@ public class DockerImpl implements Docker {
 
     @Override
     public CreateContainerCommand createContainerCommand(DockerImage image, ContainerResources containerResources,
-                                                         ContainerName name, String hostName) {
+                                                         ContainerName name, HostName hostName) {
         return new CreateContainerCommandImpl(dockerClient, image, containerResources, name, hostName);
     }
 
@@ -249,7 +250,7 @@ public class DockerImpl implements Docker {
         return inspectContainerCmd(container)
                 .map(response ->
                         new Container(
-                                response.getConfig().getHostName(),
+                                HostName.from(response.getConfig().getHostName()),
                                 new DockerImage(response.getConfig().getImage()),
                                 new ContainerResources(response.getHostConfig().getCpuShares(),
                                         response.getHostConfig().getMemory()),

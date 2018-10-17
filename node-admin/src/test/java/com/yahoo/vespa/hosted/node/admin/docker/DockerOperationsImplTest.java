@@ -3,6 +3,7 @@ package com.yahoo.vespa.hosted.node.admin.docker;
 
 import com.google.common.net.InetAddresses;
 import com.yahoo.collections.Pair;
+import com.yahoo.config.provision.HostName;
 import com.yahoo.system.ProcessExecuter;
 import com.yahoo.vespa.hosted.dockerapi.Container;
 import com.yahoo.vespa.hosted.dockerapi.ContainerName;
@@ -88,7 +89,7 @@ public class DockerOperationsImplTest {
     }
 
     private Container makeContainer(String name, Container.State state, int pid) {
-        final Container container = new Container(name + ".fqdn", new DockerImage("mock"), null,
+        final Container container = new Container(HostName.from(name + ".fqdn"), new DockerImage("mock"), null,
                 new ContainerName(name), state, pid);
         when(docker.getContainer(eq(container.name))).thenReturn(Optional.of(container));
         return container;
@@ -97,7 +98,7 @@ public class DockerOperationsImplTest {
     @Test
     public void verifyEtcHosts() {
         ContainerData containerData = mock(ContainerData.class);
-        String hostname = "hostname";
+        HostName hostname = HostName.from("hostname");
         InetAddress ipV6Local = InetAddresses.forString("::1");
         InetAddress ipV4Local = InetAddresses.forString("127.0.0.1");
 

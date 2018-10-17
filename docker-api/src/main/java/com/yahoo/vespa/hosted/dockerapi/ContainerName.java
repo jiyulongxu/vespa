@@ -1,6 +1,8 @@
 // Copyright 2017 Yahoo Holdings. Licensed under the terms of the Apache 2.0 license. See LICENSE in the project root.
 package com.yahoo.vespa.hosted.dockerapi;
 
+import com.yahoo.config.provision.HostName;
+
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -25,7 +27,11 @@ public class ContainerName {
         return name;
     }
 
-    public static ContainerName fromHostname(final String hostName) {
+    public static ContainerName fromHostname(HostName hostName) {
+        return fromHostname(hostName.value());
+    }
+
+    public static ContainerName fromHostname(String hostName) {
         return new ContainerName(hostName.split("\\.", 2)[0]);
     }
 
