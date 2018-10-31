@@ -201,6 +201,7 @@ OpenSslTlsContextImpl::OpenSslTlsContextImpl(const TransportSecurityOptions& ts_
     }
     enable_ephemeral_key_exchange();
     disable_compression();
+    disable_renegotiation();
     enforce_peer_certificate_verification();
     set_provided_certificate_verification_callback();
     // TODO set accepted cipher suites!
@@ -300,6 +301,12 @@ void OpenSslTlsContextImpl::disable_compression() {
     // TLS stream compression is vulnerable to a host of chosen plaintext
     // attacks (CRIME, BREACH etc), so disable it.
     SSL_CTX_set_options(_ctx.get(), SSL_OP_NO_COMPRESSION);
+}
+
+void OpenSslTlsContextImpl::disable_renegotiation() {
+#if (OPENSSL_VERSION_NUMBER >= 0x10100080L) // v1.1.0h and beyond
+    SSL_CTX_set_options(_ctx.get(), SSL_OP_NO_RENEGOTIATION);
+#endif
 }
 
 namespace {

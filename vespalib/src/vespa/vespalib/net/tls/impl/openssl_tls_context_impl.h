@@ -26,6 +26,11 @@ private:
     // Enable use of ephemeral key exchange (ECDHE), allowing forward secrecy.
     void enable_ephemeral_key_exchange();
     void disable_compression();
+    // Explicitly disable TLS renegotiation for <= TLSv1.2 on OpenSSL versions
+    // that support this. We don't support renegotiation in general (and will break
+    // the connection if it's attempted by the peer), but this should signal
+    // explicitly to the peer that it's not a supported action.
+    void disable_renegotiation();
     void enforce_peer_certificate_verification();
     void set_provided_certificate_verification_callback();
 };

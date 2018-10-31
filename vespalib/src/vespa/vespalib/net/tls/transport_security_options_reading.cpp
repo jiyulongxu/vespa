@@ -27,6 +27,7 @@ namespace vespalib::net::tls {
           "must-match": "DNS:foo.bar.baz.*"
         }
       ],
+      // TODO skip tags for now? just binary decision?
       "tags": ["cluster-peers", "config-server"] // or "roles"? Avoid ambiguities with Athenz concepts
     },
     {
@@ -34,6 +35,16 @@ namespace vespalib::net::tls {
         { "field":"CN", "must-match": "config.blarg.*"}
       ],
       "tags": ["config-server"]
+    }
+  ]
+  // alternative 2:
+  "allowed-peers": [
+    {
+      "required-credentials":[
+        { "field":"CN", "must-match": "*.config.blarg"},
+        { "field":"SAN_DNS", "must-match": "*.fancy.config.blarg"}
+      ],
+      "name": "funky config servers"
     }
   ]
 }
@@ -48,6 +59,7 @@ constexpr const char* files_field = "files";
 constexpr const char* private_key_field = "private-key";
 constexpr const char* ca_certs_field = "ca-certificates";
 constexpr const char* certs_field = "certificates";
+constexpr const char* allowed_peers_field = "allowed-peers";
 
 void verify_referenced_file_exists(const vespalib::string& file_path) {
     if (!fileExists(file_path)) {
@@ -62,6 +74,42 @@ vespalib::string load_file_referenced_by_field(const Cursor& cursor, const char*
     }
     verify_referenced_file_exists(file_path);
     return File::readAll(file_path);
+}
+
+RequiredPeerCredential parse_peer_credential(const Cursor& req_entry) {
+    auto field_string = req_entry["field"].asString().make_string();
+    RequiredPeerCredential::Field field;
+    if (field_string == "CN") {
+        field = RequiredPeerCredential::Field::CN;
+    } else if (field_string == "SAN_DNS") {
+        field = RequiredPeerCredential::Field::SAN_DNS;
+    } else {
+        throw IllegalArgumentException(make_string(
+                "Unsupported credential field type: '%s'. Supported are: CN, SAN_DNS",
+                field_string.c_str()));
+    }
+    auto match = req_entry["must-match"].asString().make_string();
+    return RequiredPeerCredential(field, std::move(match));
+}
+
+PeerPolicy parse_peer_policy(const Cursor& peer_entry) {
+    auto& creds = peer_entry["required-credentials"];
+    std::vector<RequiredPeerCredential> required_creds;
+    for (size_t i = 0; i < creds.children(); ++i) {
+        required_creds.emplace_back(parse_peer_credential(creds[i]));
+    }
+    return PeerPolicy(std::move(required_creds));
+}
+
+AllowedPeers parse_allowed_peers(const Cursor& allowed_peers) {
+    if (!allowed_peers.valid()) {
+        return {};
+    }
+    std::vector<PeerPolicy> policies;
+    for (size_t i = 0; i < allowed_peers.children(); ++i) {
+        policies.emplace_back(parse_peer_policy(allowed_peers[i]));
+    }
+    return AllowedPeers(std::move(policies));
 }
 
 std::unique_ptr<TransportSecurityOptions> load_from_input(Input& input) {
@@ -80,8 +128,10 @@ std::unique_ptr<TransportSecurityOptions> load_from_input(Input& input) {
     auto ca_certs = load_file_referenced_by_field(files, ca_certs_field);
     auto certs    = load_file_referenced_by_field(files, certs_field);
     auto priv_key = load_file_referenced_by_field(files, private_key_field);
+    auto allowed_peers = parse_allowed_peers(root[allowed_peers_field]);
 
-    return std::make_unique<TransportSecurityOptions>(std::move(ca_certs), std::move(certs), std::move(priv_key));
+    return std::make_unique<TransportSecurityOptions>(std::move(ca_certs), std::move(certs),
+                                                      std::move(priv_key), std::move(allowed_peers));
 }
 
 } // anon ns
